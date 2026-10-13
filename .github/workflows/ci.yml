@@ -29,3 +29,9 @@ jobs:
 
       - name: Run automated tests
         run: python -m unittest discover -v
+
+      - name: Build container image
+        run: docker build --tag devops-cicd-portfolio:ci .
+
+      - name: Smoke test container
+        run: docker run --rm devops-cicd-portfolio:ci
