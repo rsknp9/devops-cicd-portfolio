@@ -35,3 +35,37 @@ jobs:
 
       - name: Smoke test container
         run: docker run --rm devops-cicd-portfolio:ci
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.15.1
+        with:
+          cluster_name: portfolio
+
+      - name: Load image into kind
+        run: kind load docker-image devops-cicd-portfolio:ci --name portfolio
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v4.0.1
+        with:
+          terraform_version: 1.16.5
+
+      - name: Check Terraform formatting
+        working-directory: infra
+        run: terraform fmt -check -recursive
+
+      - name: Initialize Terraform
+        working-directory: infra
+        run: terraform init -backend=false -input=false
+
+      - name: Validate Terraform
+        working-directory: infra
+        run: terraform validate
+
+      - name: Run app as a Kubernetes Job
+        working-directory: infra
+        run: terraform apply -auto-approve -input=false
+
+      - name: Verify Kubernetes Job output
+        run: |
+          kubectl wait --for=condition=complete job/devops-cicd-portfolio --timeout=120s
+          test "$(kubectl logs job/devops-cicd-portfolio)" = "100"
